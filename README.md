@@ -1,36 +1,141 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CRUK Admin Dashboard
+
+A modern Next.js admin dashboard for managing users, teams, roles, and cancer type filters.
+
+## Features
+
+- **Users Management**: Create, read, update, and delete users
+- **Teams Management**: Manage teams with full CRUD operations
+- **Roles Management**: Handle roles and permissions
+- **Cancer Type Filters**: View hierarchical cancer type filter data
+- **Modern UI**: Built with Tailwind CSS and Lucide icons
+- **Type Safety**: Full TypeScript support
+- **API Integration**: Connected to the backend API at `http://localhost:8100/api`
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ and npm
+- Backend API running at `http://localhost:8100/api`
+
+### Installation
+
+1. Clone the repository and navigate to the project:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd cruk-admin
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Create a `.env.local` file:
+```bash
+cp .env.local.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Update `.env.local` with your API URL if different:
+```
+NEXT_PUBLIC_API_URL=http://localhost:8100/api
+```
 
-## Learn More
+5. Run the development server:
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+cruk-admin/
+├── app/                    # Next.js app directory
+│   ├── users/             # Users management page
+│   ├── teams/             # Teams management page
+│   ├── roles/             # Roles management page
+│   ├── cancer-type-filters/ # Cancer type filters page
+│   ├── layout.tsx         # Root layout
+│   ├── page.tsx           # Dashboard home
+│   └── providers.tsx      # React Query provider
+├── components/            # React components
+│   ├── layout/            # Layout components (Sidebar, DashboardLayout)
+│   ├── users/             # User-specific components
+│   ├── teams/             # Team-specific components
+│   ├── roles/             # Role-specific components
+│   └── ui/                 # Reusable UI components
+├── lib/                    # Utilities and configurations
+│   ├── api-client.ts      # API client with all endpoints
+│   └── types.ts           # TypeScript type definitions
+└── public/                # Static assets
+```
 
-## Deploy on Vercel
+## API Endpoints
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The dashboard connects to the following API endpoints:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Users
+- `GET /api/v1/users` - List users
+- `GET /api/v1/users/{id}` - Get user
+- `POST /api/v1/users` - Create user
+- `PUT /api/v1/users/{id}` - Update user
+- `DELETE /api/v1/users/{id}` - Delete user
+
+### Teams
+- `GET /api/v1/teams` - List teams
+- `GET /api/v1/teams/{id}` - Get team
+- `POST /api/v1/teams` - Create team
+- `PUT /api/v1/teams/{id}` - Update team
+- `DELETE /api/v1/teams/{id}` - Delete team
+
+### Roles
+- `GET /api/v1/roles` - List roles
+- `GET /api/v1/roles/{id}` - Get role
+- `POST /api/v1/roles` - Create role
+- `PUT /api/v1/roles/{id}` - Update role
+- `DELETE /api/v1/roles/{id}` - Delete role
+
+### Cancer Type Filters
+- `GET /api/v1/cancer-type-filters` - List filters
+- `GET /api/v1/cancer-type-filters/{id}` - Get filter
+
+## Authentication
+
+The API client automatically handles authentication tokens. To authenticate:
+
+1. The token should be stored in localStorage as `auth_token`
+2. The API client will automatically include the token in the `Authorization` header
+3. If you receive a 401 response, you'll be redirected to `/login`
+
+## Development
+
+### Build for Production
+
+```bash
+npm run build
+npm start
+```
+
+### Linting
+
+```bash
+npm run lint
+```
+
+## Technologies Used
+
+- **Next.js 16** - React framework
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **React Query** - Data fetching and caching
+- **Axios** - HTTP client
+- **Lucide React** - Icons
+
+## Notes
+
+- The dashboard assumes the API is running at `http://localhost:8100/api`
+- Authentication tokens are stored in localStorage
+- All API calls include error handling and automatic token management
+- The UI is responsive and works on desktop and tablet devices
