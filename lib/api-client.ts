@@ -1,4 +1,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import { setAuthUser, setAuthUserFromLoginResponse, getAuthUser } from './auth-session';
+import { unwrapEntity } from './api-response';
+import type { User } from './types';
 
 // Use Next.js API proxy in browser to avoid CORS issues
 const getApiBaseUrl = () => {
@@ -47,10 +50,17 @@ class ApiClient {
       (response) => response,
       (error: AxiosError) => {
         if (error.response?.status === 401) {
-          // Handle unauthorized - clear token and redirect to login
-          this.setToken(null);
-          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-            window.location.href = '/login';
+          const url = error.config?.url ?? '';
+          const method = (error.config?.method ?? 'get').toLowerCase();
+          const isLoginRequest = url.includes('/auth/login');
+
+          // Only treat GET 401 as session expiry. Mutation 401s are usually
+          // permission errors — let the UI surface them without logging out.
+          if (!isLoginRequest && method === 'get') {
+            this.setToken(null);
+            if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+              window.location.href = '/login';
+            }
           }
         }
         // Enhance error message for network errors
@@ -76,6 +86,7 @@ class ApiClient {
       localStorage.setItem('auth_token', token);
     } else if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
+      setAuthUser(null);
     }
   }
 
@@ -87,14 +98,21 @@ class ApiClient {
   }
 
   // Users API
-  async getUsers(params?: { page?: number; per_page?: number; filterNames?: string }) {
-    const response = await this.client.get('/v1/users', { params });
+  async getUsers(params?: { page?: number; per_page?: number; filterNames?: string; filter_names?: string }) {
+    const { filterNames, ...rest } = params ?? {};
+    const response = await this.client.get('/v1/users', {
+      params: {
+        ...rest,
+        // API expects snake_case
+        ...(filterNames ? { filter_names: filterNames } : {}),
+      },
+    });
     return response.data;
   }
 
   async getUser(id: number) {
     const response = await this.client.get(`/v1/users/${id}`);
-    return response.data;
+    return unwrapEntity<User>(response.data) ?? response.data;
   }
 
   async createUser(data: any) {
@@ -109,6 +127,29 @@ class ApiClient {
 
   async deleteUser(id: number) {
     const response = await this.client.delete(`/v1/users/${id}`);
+    return response.data;
+  }
+
+  async assignUserRoles(userId: number, roles: string[]) {
+    const response = await this.client.post(`/v1/users/${userId}/roles`, { roles });
+    return response.data;
+  }
+
+  async updateUserRoles(userId: number, roles: Record<string, boolean>) {
+    const response = await this.client.patch(`/v1/users/${userId}/roles`, { roles });
+    return response.data;
+  }
+
+  async addUserToTeam(teamId: number, userId: number, roles: string[]) {
+    const response = await this.client.post(`/v1/teams/${teamId}/users`, {
+      userId: Number(userId),
+      roles,
+    });
+    return response.data;
+  }
+
+  async removeUserFromTeam(teamId: number, userId: number) {
+    const response = await this.client.delete(`/v1/teams/${teamId}/users/${userId}`);
     return response.data;
   }
 
@@ -175,13 +216,72 @@ class ApiClient {
     return response.data;
   }
 
-  // Auth API
-  async login(email: string, password: string) {
-    const response = await this.client.post('/v1/auth/login', { email, password });
-    if (response.data.access_token) {
-      this.setToken(response.data.access_token);
-    }
+  async createCancerTypeFilter(data: Record<string, unknown>) {
+    const response = await this.client.post('/v1/cancer-type-filters', data);
     return response.data;
+  }
+
+  async updateCancerTypeFilter(id: number, data: Record<string, unknown>) {
+    const response = await this.client.put(`/v1/cancer-type-filters/${id}`, data);
+    return response.data;
+  }
+
+  // Auth API
+  async login(email: string, password: string, provider?: string) {
+    const authProvider =
+      provider || process.env.NEXT_PUBLIC_AUTH_PROVIDER || 'cruk';
+
+    const response = await this.client.post('/v1/auth/login', {
+      email,
+      password,
+      provider: authProvider,
+    });
+    const token = this.extractAuthToken(response.data);
+
+    if (token) {
+      this.setToken(token);
+    }
+    setAuthUserFromLoginResponse(response.data);
+
+    const storedUser = getAuthUser();
+    if (storedUser?.id) {
+      try {
+        const fullUser = await this.getUser(storedUser.id);
+        if (fullUser && typeof fullUser === 'object' && 'id' in fullUser) {
+          setAuthUser(fullUser as User);
+        }
+      } catch {
+        // Keep the user object from the login response
+      }
+    }
+
+    return response.data;
+  }
+
+  async logout() {
+    try {
+      await this.client.post('/v1/logout');
+    } catch {
+      // Clear local session even if the API call fails
+    }
+    this.setToken(null);
+  }
+
+  /** Supports flat and Laravel-style `{ data: { access_token } }` envelopes. */
+  private extractAuthToken(payload: unknown): string | null {
+    if (!payload || typeof payload !== 'object') return null;
+
+    const record = payload as Record<string, unknown>;
+    for (const key of ['access_token', 'accessToken', 'token', 'jwt'] as const) {
+      const value = record[key];
+      if (typeof value === 'string' && value.length > 0) return value;
+    }
+
+    if (record.data && typeof record.data === 'object') {
+      return this.extractAuthToken(record.data);
+    }
+
+    return null;
   }
 }
 

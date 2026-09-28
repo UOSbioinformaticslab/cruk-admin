@@ -6,10 +6,14 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { apiClient } from '@/lib/api-client';
 import { CancerTypeFilter } from '@/lib/types';
 import { Table, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from '@/components/ui/Table';
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { ChevronRight, ChevronDown, Plus, Edit } from 'lucide-react';
+import { CancerTypeFilterModal } from '@/components/cancer-type-filters/CancerTypeFilterModal';
 
 export default function CancerTypeFiltersPage() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [selectedFilter, setSelectedFilter] = useState<CancerTypeFilter | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['cancer-type-filters'],
@@ -24,6 +28,16 @@ export default function CancerTypeFiltersPage() {
       newExpanded.add(id);
     }
     setExpandedRows(newExpanded);
+  };
+
+  const handleCreate = () => {
+    setSelectedFilter(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (filter: CancerTypeFilter) => {
+    setSelectedFilter(filter);
+    setIsModalOpen(true);
   };
 
   const renderFilterRow = (filter: CancerTypeFilter, level: number = 0): React.ReactNode => {
@@ -57,6 +71,11 @@ export default function CancerTypeFiltersPage() {
           <TableCell>{filter.primary_group || '-'}</TableCell>
           <TableCell>{filter.count || '-'}</TableCell>
           <TableCell>{filter.level}</TableCell>
+          <TableCell>
+            <Button variant="secondary" onClick={() => handleEdit(filter)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+          </TableCell>
         </TableRow>
         {hasChildren && isExpanded && filter.children?.map((child) => renderFilterRow(child, level + 1))}
       </Fragment>
@@ -85,6 +104,10 @@ export default function CancerTypeFiltersPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">Cancer Type Filters</h1>
+          <Button onClick={handleCreate}>
+            <Plus className="h-4 w-4 mr-2 inline" />
+            Add Filter
+          </Button>
         </div>
 
         <Table>
@@ -96,13 +119,24 @@ export default function CancerTypeFiltersPage() {
             <TableHeaderCell>Primary Group</TableHeaderCell>
             <TableHeaderCell>Count</TableHeaderCell>
             <TableHeaderCell>Level</TableHeaderCell>
+            <TableHeaderCell>Actions</TableHeaderCell>
           </TableHeader>
           <TableBody>
             {filters.map((filter: CancerTypeFilter) => renderFilterRow(filter))}
           </TableBody>
         </Table>
+
+        {isModalOpen && (
+          <CancerTypeFilterModal
+            filter={selectedFilter}
+            allFilters={filters}
+            onClose={() => {
+              setIsModalOpen(false);
+              setSelectedFilter(null);
+            }}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
 }
-

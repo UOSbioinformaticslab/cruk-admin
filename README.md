@@ -100,6 +100,8 @@ The dashboard connects to the following API endpoints:
 ### Cancer Type Filters
 - `GET /api/v1/cancer-type-filters` - List filters
 - `GET /api/v1/cancer-type-filters/{id}` - Get filter
+- `POST /api/v1/cancer-type-filters` - Create filter
+- `PUT /api/v1/cancer-type-filters/{id}` - Update filter
 
 ## Authentication
 

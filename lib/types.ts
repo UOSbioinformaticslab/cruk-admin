@@ -15,6 +15,7 @@ export interface User {
   orcid?: string;
   contact_feedback?: boolean;
   contact_news?: boolean;
+  is_admin?: number | boolean;
   roles?: Role[];
   teams?: Team[];
   notifications?: Notification[];
@@ -94,4 +95,5 @@ export interface PaginatedResponse<T> {
   from: number;
   to: number;
 }
+
 

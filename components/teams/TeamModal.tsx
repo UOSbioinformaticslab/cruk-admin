@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
+import { extractApiErrorMessage } from '@/lib/api-response';
 import { Team } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { X } from 'lucide-react';
@@ -29,6 +30,7 @@ export function TeamModal({ team, onClose }: TeamModalProps) {
     introduction: '',
     service: '',
   });
+  const [submitError, setSubmitError] = useState<string>('');
 
   const queryClient = useQueryClient();
 
@@ -59,6 +61,9 @@ export function TeamModal({ team, onClose }: TeamModalProps) {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
       onClose();
     },
+    onError: (err) => {
+      setSubmitError(extractApiErrorMessage(err));
+    },
   });
 
   const updateMutation = useMutation({
@@ -67,10 +72,14 @@ export function TeamModal({ team, onClose }: TeamModalProps) {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
       onClose();
     },
+    onError: (err) => {
+      setSubmitError(extractApiErrorMessage(err));
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError('');
     const submitData = {
       ...formData,
       application_form_updated_by: 0,
@@ -85,6 +94,8 @@ export function TeamModal({ team, onClose }: TeamModalProps) {
     }
   };
 
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -95,6 +106,11 @@ export function TeamModal({ team, onClose }: TeamModalProps) {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {submitError && (
+            <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {submitError}
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
             <input
@@ -156,7 +172,7 @@ export function TeamModal({ team, onClose }: TeamModalProps) {
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={isSubmitting}>
               {team ? 'Update' : 'Create'}
             </Button>
           </div>
@@ -165,4 +181,5 @@ export function TeamModal({ team, onClose }: TeamModalProps) {
     </div>
   );
 }
+
 

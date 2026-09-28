@@ -1,9 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Users, UsersRound, Shield, Filter, LayoutDashboard } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Users, UsersRound, Shield, Filter, LayoutDashboard, LogOut } from 'lucide-react';
 import clsx from 'clsx';
+import { apiClient } from '@/lib/api-client';
+import { canManageUserAssignments, getAuthUser, setAuthUser } from '@/lib/auth-session';
+import type { User } from '@/lib/types';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -15,6 +19,32 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [authUser, setAuthUserState] = useState<User | null>(() => getAuthUser());
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const stored = getAuthUser();
+    if (!stored?.id) return;
+    apiClient
+      .getUser(stored.id)
+      .then((fullUser) => {
+        if (fullUser && typeof fullUser === 'object' && 'id' in fullUser) {
+          setAuthUser(fullUser as User);
+          setAuthUserState(fullUser as User);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const isAdmin = canManageUserAssignments(authUser);
+
+  const handleLogout = async () => {
+    await apiClient.logout();
+    router.push('/login');
+    router.refresh();
+  };
 
   return (
     <div className="flex h-full w-64 flex-col bg-gray-900">
@@ -46,7 +76,30 @@ export function Sidebar() {
           );
         })}
       </nav>
+      <div className="border-t border-gray-800 p-4">
+        {mounted && authUser?.email && (
+          <div className="mb-3">
+            <p className="truncate text-xs text-gray-400" title={authUser.email}>
+              {authUser.email}
+            </p>
+            {isAdmin && (
+              <span className="mt-1 inline-block rounded bg-green-900/50 px-2 py-0.5 text-xs text-green-300">
+                Admin
+              </span>
+            )}
+          </div>
+        )}
+        {mounted && (
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-800 hover:text-white"
+          >
+            <LogOut className="mr-3 h-5 w-5 flex-shrink-0 text-gray-400" />
+            Log out
+          </button>
+        )}
+      </div>
     </div>
   );
 }
-
