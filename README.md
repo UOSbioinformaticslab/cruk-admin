@@ -118,6 +118,12 @@ npm start
 npm run lint
 ```
 
+### Tests
+
+```bash
+npm test
+```
+
 ## Technologies Used
 
 - **Next.js 16** - React framework
