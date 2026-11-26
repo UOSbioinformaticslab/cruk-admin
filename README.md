@@ -50,26 +50,22 @@ npm run dev
 
 ## Project Structure
 
+The app follows the same layered layout as [HDR UK gateway-web](https://github.com/HDRUK/gateway-web): routes stay thin, and domain logic lives in services, hooks, and modules.
+
 ```
-cruk-admin/
-├── app/                    # Next.js app directory
-│   ├── users/             # Users management page
-│   ├── teams/             # Teams management page
-│   ├── roles/             # Roles management page
-│   ├── cancer-type-filters/ # Cancer type filters page
-│   ├── layout.tsx         # Root layout
-│   ├── page.tsx           # Dashboard home
-│   └── providers.tsx      # React Query provider
-├── components/            # React components
-│   ├── layout/            # Layout components (Sidebar, DashboardLayout)
-│   ├── users/             # User-specific components
-│   ├── teams/             # Team-specific components
-│   ├── roles/             # Role-specific components
-│   └── ui/                 # Reusable UI components
-├── lib/                    # Utilities and configurations
-│   ├── api-client.ts      # API client with all endpoints
-│   └── types.ts           # TypeScript type definitions
-└── public/                # Static assets
+src/
+├── app/                 # Next.js routes and API proxy
+├── components/          # Shared UI (layout, buttons, tables)
+├── config/              # Environment and API configuration
+├── consts/              # Navigation, query keys, storage keys
+├── hooks/               # React Query hooks per domain
+├── interfaces/          # Domain types
+├── modules/             # Feature UI (user, team, role, filter modals)
+├── providers/           # App-wide providers
+├── services/            # API client and domain services
+│   └── api/             # Axios instance, auth token, interceptors
+├── styles/              # Global styles
+└── utils/               # Response unwrapping, pagination, session helpers
 ```
 
 ## API Endpoints
@@ -105,11 +101,7 @@ The dashboard connects to the following API endpoints:
 
 ## Authentication
 
-The API client automatically handles authentication tokens. To authenticate:
-
-1. The token should be stored in localStorage as `auth_token`
-2. The API client will automatically include the token in the `Authorization` header
-3. If you receive a 401 response, you'll be redirected to `/login`
+The API client in `src/services` stores the token in localStorage as `auth_token` and sends it as a Bearer token. A 401 on a GET request clears the session and redirects to `/login`.
 
 ## Development
 
